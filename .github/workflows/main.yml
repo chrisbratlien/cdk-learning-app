@@ -1,4 +1,4 @@
-name: Upload Website
+name: publish
 
 on:
   push:
@@ -6,33 +6,19 @@ on:
     - main
 
 jobs:
-  # from mauricio
   build-n-deploy:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
     - uses: actions/setup-node@v3
       with:
-        node-version: '14'
-    - run: npm install --save react react-dom
+        node-version: '16'
+    - uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+    - run: npm ci
     - run: npm run build
-    - run: ls -Alh
-
-  # from jeanlescure
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@main
-    - uses: actions/setup-node@v3
-      with:
-        node-version: '14'
-    - uses: jeanlescure/react-deploy-to-s3-action@main
-      with:
-        args: --acl public-read --follow-symlinks --delete
-      env:
-        NODE_ENV: development # optional: defaults to production
-        AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        AWS_REGION: us-east-1 # optional: defaults to us-east-1
-        # SOURCE_DIR: bundle # optional: defaults to public
+    - run: cd build/static/ && aws s3 sync . s3://mauricio-growth-days-2022/ --acl public-read
+    
